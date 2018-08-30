@@ -1,0 +1,5 @@
+---
+cgr_path: /usr/local/bin/cgr
+cgr_keep_updated: yes
+cgr_version: ~2.0
+cgr_packages: []

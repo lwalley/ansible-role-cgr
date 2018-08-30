@@ -1,0 +1,43 @@
+---
+- name: Ensure Cgr is installed globally via Composer.
+  composer:
+    command: require
+    global_command: yes
+    arguments: "consolidation/cgr:{{ cgr_version }}"
+  register: cgr_composer_require
+
+- name: Update global Cgr install if configured.
+  composer:
+    command: update
+    global_command: yes
+    arguments: "consolidation/cgr --with-dependencies"
+  when:
+    - cgr_keep_updated
+    - not cgr_composer_require.changed
+
+- name: Ensure globally-installed Cgr is symlinked into bin directory.
+  file:
+    src: "~/.composer/vendor/bin/cgr"
+    dest: "{{ cgr_path }}"
+    state: link
+
+- name: Install configured Cgr packages.
+  command: "{{ cgr_path }} {{ item.name }} {{ item.release }}"
+  with_items: "{{ cgr_packages }}"
+  register: cgr_packages_installed
+  changed_when: '"Nothing to install or update" not in cgr_packages_installed.stderr'
+
+- name: Update configured Cgr packages.
+  command: "{{ cgr_path }} update {{ item.name }}"
+  with_items: "{{ cgr_packages }}"
+  register: cgr_packages_updated
+  when: item.keep_updated is defined and item.keep_updated
+  changed_when: '"Nothing to install or update" not in cgr_packages_updated.stderr'
+
+- name: Ensure Cgr packages are symlinked into bin directory as configured.
+  file:
+    src: "~/.composer/vendor/bin/{{ item.bin.name }}"
+    dest: "{{ item.bin.path }}"
+    state: link
+  with_items: "{{ cgr_packages }}"
+  when: item.bin.name is defined and item.bin.path is defined
